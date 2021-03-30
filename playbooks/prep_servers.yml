@@ -1,0 +1,48 @@
+---
+ - name: 'Install nginx and config firewalld'
+   hosts: all
+   become: true
+   gather_facts: true
+   vars:
+
+   tasks:
+     - name: 'Install required packages'
+       yum:
+         name:
+           - nano
+           - net-tools
+           - epel-release
+           - telnet
+         state: present
+
+     - name: 'Install nginx'
+       yum:
+         name:
+           - nginx
+         state: present
+       notify:
+         - restart nginx
+       when: ansible_hostname=='centralServer'
+
+     - name: 'Start Firewalld'
+       systemd:
+         name: firewalld
+         state: started
+       when: ansible_hostname=='inetRouter2'
+
+     - name: "Cpoy script for add port-forwarding"
+       copy:
+         src: ../templates/port_forwarding.sh
+         dest: /root/port_forwarding.sh
+       when: ansible_hostname=='inetRouter2'
+
+     - name: 'Launch script for add port-forwarding'
+       shell: sh /root/port_forwarding.sh
+       when: ansible_hostname=='inetRouter2'
+
+   handlers:
+     - name: restart nginx
+       systemd:
+         name: nginx
+         state: restarted
+         enabled: yes
